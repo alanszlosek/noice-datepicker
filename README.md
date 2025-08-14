@@ -4,7 +4,7 @@ Fewer clicks, taps, swipes, and scrolls. Here's my attempt at a date/time picker
 
 ![Screenshot of the noice-datepicker day/calendar view](./noice.png)
 
-[Click here for a demo](https://alanszlosek.com/files/datetime.html). Select the tabs (month, day, year, hour, minute) at the top to change those values.
+[Click here for a demo](https://alanszlosek.com/files/noice-datepicker.html). Select the tabs (month, day, year, hour, minute) at the top to change those values.
 
 Sometimes (often?) user interfaces don't need to mimic things from the real world. A date/time picker doesn't need to mimic a calendar or a clock.
 
