@@ -19,7 +19,7 @@ Note: it needs more work to make easy to integrate with your existing code. If y
 
 I don't regularly exclaim "Noice!" ... it's just not my style. But since I am squarely in favor of the ethical and just treatment of my fellow human beings, you can consider the name to be exclaiming "No ICE!" instead.
 
-Thank you for your attention to the matter, and for taking part in the fight for ethics, kindness, and justice. The moral arc of the universe depends on it.
+Thank you for taking part in the fight for ethics, kindness, and justice (if you have the means to do so). The moral arc of the universe depends on it.
 
 ## Todo
 
