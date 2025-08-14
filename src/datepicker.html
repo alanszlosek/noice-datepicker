@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    
+    <title>noice-datepicker</title>
+<style>
+/*
+TODO
+
+* set max width
+* fill screen width
+*/
+#datePicker {
+    max-width: 500px;
+    width: 100%;
+}
+#datePicker .tabs {
+    display: flex;
+    margin-bottom: 5px;
+}
+#datePicker .tabs > div {
+    background-color: gray;
+    border-top: 3px solid gray;
+    /*display: inline;*/
+    flex: 1;
+    margin-bottom: 1px;
+    padding: 10px;
+    text-align: center;
+}
+#datePicker .tabs > .selected {
+    border-top: 3px solid red;
+}
+.tabContents > * {
+    display: none;
+}
+
+#dpYearsContent, #dpMonthsContent, #dpDaysContent, #dpHoursContent, #dpMinutesContent {
+    display: grid;
+    grid-template-columns: 25% 25% 25% 25%;
+    text-align: center;
+}
+#dpDaysContent {
+    grid-template-columns: 14.2% 14.2% 14.2% 14.2% 14.2% 14.2% 14.2%;
+}
+#dpYearsContent, #dpMinutesContent {
+    grid-template-columns: 20% 20% 20% 20% 20%;
+}
+#dpYearsContent > *, #dpMonthsContent > *, #dpDaysContent > *, #dpHoursContent > *, #dpMinutesContent > * {
+    border: 1px solid white;
+    padding: 10px;
+}
+
+#dpDaysContent .previous, #dpDaysContent .next {
+    background-color: lightgray;
+    border-color: lightgray;
+}
+#dpDaysContent .today {
+    border-color: green;
+}
+#datePicker .tabContents .selected {
+    background-color: lightgreen;
+}
+</style>
+</head>
+<body>
+
+    <div id="datePicker">
+        <div class="tabs">
+            <div id="dpMonth">June</div>
+            <div id="dpDay">26</div>
+            <div id="dpYear">2025</div>
+            <div id="dpColon">@</div>
+            <div id="dpHour">9</div>
+            <div id="dpColon">:</div>
+            <div id="dpMinute">31</div>
+        </div>
+        <div class="tabContents">
+            <div id="dpMonths"><div id="dpMonthsContent"></div></div>
+            <div id="dpDays"><div id="dpDaysContent"></div></div>
+            <div id="dpYears"><div id="dpYearsContent"></div></div>
+            <div style="display: block;"></div>
+            <div id="dpHours"><div id="dpHoursContent"></div></div>
+            <div style="display: block;"></div>
+            <div id="dpMinutes"><div id="dpMinutesContent"></div></div>
+        </div>
+    </div>
+
+
+<script>
+var drawChildren = function(container, children) {
+    while (container.firstChild) {
+        container.removeChild(container.firstChild);
+    }
+    children.forEach(function(item) {
+        if (item == null) {
+            return;
+        }
+        container.appendChild(item);
+    });
+};
+var tag = function(tagName, attributes, children) {
+    var element = document.createElement(tagName);
+    for (var i in attributes) {
+        element.setAttribute(i, attributes[i]);
+    }
+    // Convert text to text node
+    for (var i = 0; i < children.length; i ++) {
+        var node = children[i];
+        if (node == null) {
+            continue;
+        } else if (node instanceof Node) {
+        } else {
+            node = document.createTextNode(node);
+        }
+        element.appendChild(node);
+    }
+
+    return element;
+};
+
+var tabs = {
+    tabs: [],
+    tabContents: [],
+    init: function(container) {
+        var self = this;
+        this.tabs = container.querySelectorAll(".tabs > div");
+        // Get corresponding content elements
+        this.tabContents = container.querySelectorAll(".tabContents > div");
+
+        var attach = container.querySelectorAll(".tabs")[0];
+        attach.addEventListener("click", function(e) {
+            self.selectTab(e.target);
+        });
+    },
+
+    selectTab: function(target) {
+        var self = this;
+        for (var i = 0; i < self.tabs.length; i++) {
+            var el = self.tabs[i];
+            if (target == el) {
+                self.tabContents[i].style.display = "block";
+                // add selected class
+                el.classList.add("selected");
+            } else {
+                self.tabContents[i].style.display = "none";
+                el.classList.remove("selected");
+            }
+        }
+    }
+};
+
+
+
+
+
+var datePicker = {
+    year: 0,
+    month: 0,
+    day: 0,
+    hour: 0,
+    minute: 0,
+    selected: new Date(),
+    today: new Date(),
+
+    months: [],
+    minuteStep: 5,
+
+    init: function() {
+        var self = this;
+
+        self.months = "Jan,Feb,Mar,Apr,May,Jun,Jul,Aug,Sep,Oct,Nov,Dec".split(",");
+
+        // Round up minutes based on step
+        let min = self.selected.getMinutes();
+        self.selected.setMinutes( min + (self.minuteStep - (min % self.minuteStep)) );
+
+        self.initYears( self.selected.getFullYear() );
+        self.update();
+
+        document.getElementById("dpYears").addEventListener("click", function(e) {
+            let v = e.target.getAttribute("data-value");
+            self.selected.setFullYear( v );
+            self.updateTabs();
+            self.initDays();
+            self.initYears( self.selected.getFullYear() );
+        });
+        document.getElementById("dpMonths").addEventListener("click", function(e) {
+            let v = e.target.getAttribute("data-value");
+            console.log("month " + v);
+            self.selected.setMonth( v );
+            self.updateTabs();
+            self.initDays();
+            self.initMonths();
+        });
+        document.getElementById("dpDays").addEventListener("click", function(e) {
+            let v = e.target.getAttribute("data-value");
+            // Split and set Month and Date
+            let parts = v.split("/");
+            self.selected.setMonth( parts[0] );
+            self.selected.setDate( parts[1] );
+            self.updateTabs();
+            // TODO: don't redraw calendar cuz jarring ... somehow just change highlighting
+            self.initDays();
+        });
+        document.getElementById("dpHours").addEventListener("click", function(e) {
+            let v = e.target.getAttribute("data-value");
+            self.selected.setHours( v );
+            self.updateTabs();
+            self.initHours();
+        });
+        document.getElementById("dpMinutes").addEventListener("click", function(e) {
+            let v = e.target.getAttribute("data-value");
+            self.selected.setMinutes( v );
+            self.updateTabs();
+            self.initMinutes();
+        });
+    },
+    update: function() {
+        var self = this;
+        self.updateTabs();
+        self.initMonths();
+        self.initDays();
+        self.initHours();
+        self.initMinutes();
+    },
+    updateTabs: function() {
+        var self = this;
+        document.getElementById("dpMonth").innerText = self.months[ self.selected.getMonth() ];
+        document.getElementById("dpDay").innerText = self.selected.getDate();
+        document.getElementById("dpYear").innerText = self.selected.getFullYear();
+        document.getElementById("dpHour").innerText = self.selected.getHours();
+        document.getElementById("dpMinute").innerText = self.selected.getMinutes();
+
+    },
+
+    initYears: function(currentYear) {
+        var self = this;
+        var buffer = 12;
+        var start = currentYear - buffer;
+        var end = currentYear + buffer;
+
+        var out = [];
+
+        for (var i = start; i <= end; i++) {
+            var selected = i == self.selected.getFullYear() ? " selected" : "";
+            var el = tag(
+                "div",
+                {
+                    "data-value": i,
+                    "class": selected
+                },
+                [
+                    i
+                ]
+            );
+            out.push(el);
+        }
+        drawChildren(document.getElementById("dpYearsContent"), out);
+    },
+
+    initMonths: function() {
+        var self = this;
+        var out = [];
+        for (var i in self.months) {
+            var selected = i == self.selected.getMonth() ? " selected" : "";
+            var m = self.months[i];
+
+            var el = tag(
+                "div",
+                {
+                    "data-value": i,
+                    "class": selected
+                },
+                [
+                    m
+                ]
+            );
+            out.push(el);
+        }
+        drawChildren(document.getElementById("dpMonthsContent"), out);
+    },
+
+    _highlight: function(d) {
+        var self = this;
+        var classes = "";
+        let isToday = d.getFullYear() == self.today.getFullYear()
+            &&
+            d.getMonth() == self.today.getMonth()
+            &&
+            d.getDate() == self.today.getDate();
+        let isSelected = d.getFullYear() == self.selected.getFullYear()
+            &&
+            d.getMonth() == self.selected.getMonth()
+            &&
+            d.getDate() == self.selected.getDate();
+        if (isToday) {
+            classes += " today"
+        }
+        if (isSelected) {
+            classes += " selected";
+        }
+        return classes;
+    },
+    initDays: function() {
+        var self = this;
+        var out = [];
+        // Find day of week, then go backwards
+        let selected = this.selected;
+
+        var msInDay = 60 * 60 * 24 * 1000;
+
+        // Anchor to beginning of current month
+        let a = new Date(selected.getFullYear(), selected.getMonth(), 1, 0, 0, 0);
+        let ms = a.valueOf() - (a.getDay() * msInDay);
+
+        let d = new Date(ms);
+        // Populate previous month days
+        while(d.getMonth() != selected.getMonth()) {
+            var isToday = d.getFullYear() == self.selected.getFullYear()
+                &&
+                d.getMonth() == self.selected.getMonth()
+                &&
+                d.getDate() == self.selected.getDate();
+            var extra = isToday ? " selected" : "";
+                
+            out.push(
+                tag(
+                    "div",
+                    {
+                        "class": "previous" + self._highlight(d),
+                        "data-value": d.getMonth() + "/" + d.getDate()
+                    },
+                    [
+                        d.getDate()
+                    ]
+                )
+            );
+            ms += msInDay;
+            d = new Date(ms);
+        }
+        // Populate current month days
+        while(d.getMonth() == selected.getMonth()) {
+            out.push(
+                tag(
+                    "div",
+                    {
+                        "class": "current" + self._highlight(d),
+                        "data-value": d.getMonth() + "/" + d.getDate()
+                    },
+                    [
+                        d.getDate()
+                    ]
+                )
+            );
+            ms += msInDay;
+            d = new Date(ms);
+        }
+        // Populate next month row if necessary
+        while(d.getDay() != 0) {
+            out.push(
+                tag(
+                    "div",
+                    {
+                        "class": "next" + self._highlight(d),
+                        "data-value": d.getMonth() + "/" + d.getDate()
+                    },
+                    [
+                        d.getDate()
+                    ]
+                )
+            );
+            ms += msInDay;
+            d = new Date(ms);
+        }
+
+        drawChildren(document.getElementById("dpDaysContent"), out);
+    },
+
+    initHours: function() {
+        var self = this;
+        var out = [];
+        for (var i = 0; i < 24; i++) {
+            var selected = i == self.selected.getHours() ? " selected" : "";
+            var hour;
+            if (i == 0) {
+                hour = "12AM";
+            } else if (i > 11) {
+                if (i == 12) {
+                    hour = 12 + "PM";
+                } else {
+                    hour = (i-12) + "PM";
+                }
+            } else {
+                hour = i + "AM";
+            }
+            var el = tag(
+                "div",
+                {
+                    "data-value": i,
+                    "class": selected
+                },
+                [
+                    hour
+                ]
+            );
+            out.push(el);
+        }
+        drawChildren(document.getElementById("dpHoursContent"), out);
+    },
+
+    initMinutes: function() {
+        var self = this;
+        var out = [];
+        var step = 5;
+
+        for (var i = 0; i < 60; i += step) {
+            var selected = i == self.selected.getMinutes() ? " selected" : "";
+            var val = new String(i);
+            val = ":" + val.padStart(2, "0");
+            var el = tag(
+                "div",
+                {
+                    "data-value": i,
+                    "class": selected
+                },
+                [
+                    val
+                ]
+            );
+            out.push(el);
+        }
+        drawChildren(document.getElementById("dpMinutesContent"), out);
+    }
+
+};
+
+tabs.init( document.getElementById("datePicker") );
+tabs.selectTab( tabs.tabs[1] );
+datePicker.init();
+
+</script>
+</body>
+</html>
